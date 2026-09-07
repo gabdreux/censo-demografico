@@ -73,6 +73,53 @@ app.get('/api/ufs', (req, res) => {
 
 
 
+// Ranking do Estado e Totais da UF
+app.get('/api/ufs/:cd_uf', (req, res) => {
+  const { cd_uf } = req.params;
+
+  const stmtEstado = db.prepare(`
+    SELECT 
+      u.cd_uf,
+      u.nm_uf,
+      COALESCE(SUM(s.area_km2), 0) as area_total,
+      COALESCE(SUM(s.populacao), 0) as populacao_total
+    FROM uf u
+    JOIN municipio m ON u.cd_uf = m.cd_uf
+    LEFT JOIN setor s ON m.cd_mun = s.cd_mun
+    WHERE u.cd_uf = ?
+    GROUP BY u.cd_uf
+  `);
+
+  const estado = stmtEstado.get(cd_uf) as any;
+  if (!estado) return res.status(404).json({ error: 'UF não encontrada' });
+
+  estado.densidade_demografica = estado.area_total > 0 ? estado.populacao_total / estado.area_total : 0;
+
+
+  const stmtRanking = db.prepare(`
+    SELECT 
+      m.cd_mun,
+      m.nm_mun,
+      COALESCE(SUM(s.populacao), 0) as populacao_total,
+      COALESCE(SUM(s.area_km2), 0) as area_total,
+      CASE 
+        WHEN SUM(s.area_km2) > 0 THEN SUM(s.populacao) / SUM(s.area_km2) 
+        ELSE 0 
+      END as densidade_demografica
+    FROM municipio m
+    LEFT JOIN setor s ON m.cd_mun = s.cd_mun
+    WHERE m.cd_uf = ?
+    GROUP BY m.cd_mun
+    ORDER BY densidade_demografica DESC
+  `);
+
+  const municipios = stmtRanking.all(cd_uf);
+
+  res.json({
+    estado,
+    municipios
+  });
+});
 
 
 
