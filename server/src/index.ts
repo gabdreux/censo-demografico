@@ -65,6 +65,13 @@ app.get('/api/municipios/:cd_mun', (req, res) => {
 
 
 
+// Lista de UFs
+app.get('/api/ufs', (req, res) => {
+  const stmt = db.prepare('SELECT * FROM uf ORDER BY nm_uf ASC');
+  res.json(stmt.all());
+});
+
+
 
 
 
