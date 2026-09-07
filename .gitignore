@@ -3,3 +3,7 @@ dist/
 build/
 .env
 *.log
+
+# Arquivos temporários do SQLite
+*.sqlite-wal
+*.sqlite-shm
